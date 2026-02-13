@@ -3,37 +3,74 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D Room & Kitchen Viewer</title>
+    <title>3D Room & Kitchen Viewer - Mother Homes</title>
     <style>
-        body { margin: 0; overflow: hidden; font-family: sans-serif; }
+        body { margin: 0; overflow: hidden; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #1a1a1a; }
         #controls {
             position: absolute;
             top: 20px;
             left: 20px;
             z-index: 10;
-            background: rgba(255,255,255,0.8);
-            padding: 10px;
-            border-radius: 8px;
+            background: rgba(0,0,0,0.8);
+            padding: 15px;
+            border-radius: 12px;
+            color: white;
+            border: 1px solid #444;
         }
         button {
             padding: 10px 20px;
             margin-right: 10px;
             cursor: pointer;
             border: none;
-            border-radius: 4px;
-            background: #007bff;
+            border-radius: 6px;
+            background: #2e8b57;
             color: white;
+            font-weight: bold;
+            transition: all 0.2s;
         }
-        button:hover { background: #0056b3; }
-        h1 { margin: 0 0 10px 0; font-size: 18px; }
+        button:hover { background: #3cb371; transform: scale(1.05); }
+        h1 { margin: 0 0 10px 0; font-size: 20px; color: #2e8b57; }
+        .branding { font-size: 12px; color: #aaa; margin-bottom: 10px; }
+
+        .label {
+            position: absolute;
+            background: rgba(255, 255, 255, 0.95);
+            color: #333;
+            padding: 10px;
+            border-radius: 6px;
+            pointer-events: none;
+            font-size: 13px;
+            max-width: 220px;
+            z-index: 5;
+            transition: opacity 0.3s, transform 0.3s;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            border-left: 4px solid #2e8b57;
+        }
+        .label b { color: #2e8b57; display: block; margin-bottom: 4px; font-size: 14px; }
+
+        /* Marker dot */
+        .marker-dot {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: #2e8b57;
+            border: 2px solid white;
+            border-radius: 50%;
+            z-index: 4;
+            pointer-events: none;
+            box-shadow: 0 0 10px #2e8b57;
+        }
     </style>
 </head>
 <body>
     <div id="controls">
-        <h1>Viewer</h1>
+        <h1>Mother Homes</h1>
+        <div class="branding">Premium Living Spaces</div>
         <button id="btn-room">View Room</button>
         <button id="btn-kitchen">View Kitchen</button>
     </div>
+    <div id="labels-container"></div>
+
     <script type="importmap">
         {
             "imports": {
@@ -48,35 +85,67 @@
         import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 
         let scene, camera, renderer, controls, currentModel;
+        const labelsContainer = document.getElementById('labels-container');
+        let markers = [];
+
+        const roomLabels = {
+            'bed_base': { title: 'Comfortable Single Bed', text: 'Premium linen and regular towel changes.' },
+            'wifi_router': { title: 'WiFi Router', text: 'High-speed internet for work and study.' },
+            'cctv_camera': { title: 'Dome CCTV Camera', text: 'Enhanced security and 24/7 surveillance.' },
+            'vacuum_cleaner': { title: 'Vacuum Cleaner', text: 'Regular professional cleaning services.' },
+            'laundry_basket': { title: 'Laundry Basket', text: 'Efficient laundry management included.' },
+            'dining_plate': { title: 'Dining & Meals', text: '4 Nutritious meals provided daily.' },
+            'water_purifier': { title: 'Water Purifier', text: 'Safe and chilled drinking water available.' },
+            'ups_unit': { title: 'UPS / Power Backup', text: 'Uninterrupted power for your devices.' },
+            'ac_unit': { title: 'Split AC', text: 'Climate control for your comfort.' },
+            'bean_bag': { title: 'Social Nook', text: 'Cozy spot for relaxation and socializing.' },
+            'wooden_wardrobe': { title: 'Wooden Wardrobe', text: 'Spacious storage for your belongings.' },
+            'study_desk': { title: 'Ergonomic Study Desk', text: 'Designed for productivity and focus.' }
+        };
+
+        const kitchenLabels = {
+            'overhead_cabinets': { title: 'Wooden Cabinets', text: 'Spacious storage for all kitchenware.' },
+            'chimney_hood': { title: 'Chimney Hood', text: 'Stainless-steel hood for a smoke-free kitchen.' },
+            'gas_stove': { title: 'Two-Burner Stove', text: 'Efficient cooking with safe gas supply.' },
+            'granite_countertop': { title: 'Granite Countertop', text: 'Durable and sleek black granite finish.' },
+            'mosaic_backsplash': { title: 'Mosaic Backsplash', text: 'Premium finish for a modern look.' },
+            'sink_basin': { title: 'Stainless Sink', text: 'Large basin with a modern faucet.' },
+            'water_purifier': { title: 'Wall-Mounted Purifier', text: 'Ensures safe and healthy drinking water.' },
+            'gas_cylinder': { title: 'Gas Cylinder', text: 'Safely tucked away with easy access.' },
+            'oil_bottle_0': { title: 'Cooking Essentials', text: 'Fully equipped for all your needs.' }
+        };
 
         init();
         animate();
 
         function init() {
             scene = new THREE.Scene();
-            scene.background = new THREE.Color(0xf0f0f0);
+            scene.background = new THREE.Color(0x222222);
 
-            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
-            camera.position.set(5, 5, 5);
+            camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.set(6, 4, 6);
 
             renderer = new THREE.WebGLRenderer({ antialias: true });
             renderer.setSize(window.innerWidth, window.innerHeight);
             renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.shadowMap.enabled = true;
+            renderer.toneMapping = THREE.ReinhardToneMapping;
+            renderer.toneMappingExposure = 2.0;
             document.body.appendChild(renderer.domElement);
 
             controls = new OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
             controls.dampingFactor = 0.05;
 
-            const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
-            scene.add(ambientLight);
-
-            const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 2.0);
+            const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 2.5);
             hemiLight.position.set(0, 20, 0);
             scene.add(hemiLight);
 
-            const directionalLight = new THREE.DirectionalLight(0xffffff, 2.0);
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1.5);
             directionalLight.position.set(5, 10, 7.5);
+            directionalLight.castShadow = true;
+            directionalLight.shadow.mapSize.width = 1024;
+            directionalLight.shadow.mapSize.height = 1024;
             scene.add(directionalLight);
 
             loadModel('room.glb');
@@ -88,27 +157,93 @@
         }
 
         function loadModel(url) {
-            console.log("Loading model:", url);
             if (currentModel) {
                 scene.remove(currentModel);
             }
+            clearLabels();
             const loader = new GLTFLoader();
             loader.load(url, function (gltf) {
                 currentModel = gltf.scene;
+
+                currentModel.traverse(child => {
+                    if (child.isMesh) {
+                        child.castShadow = true;
+                        child.receiveShadow = true;
+                        if (child.material) {
+                            child.material.roughness = 0.5;
+                            child.material.metalness = 0.2;
+                        }
+                    }
+                });
+
                 scene.add(currentModel);
-                console.log("Model loaded successfully");
 
                 const box = new THREE.Box3().setFromObject(currentModel);
                 const center = box.getCenter(new THREE.Vector3());
                 const size = box.getSize(new THREE.Vector3());
                 const maxDim = Math.max(size.x, size.y, size.z);
 
-                camera.position.set(center.x + maxDim, center.y + maxDim, center.z + maxDim);
+                camera.position.set(center.x + maxDim * 1.5, center.y + maxDim, center.z + maxDim * 1.5);
                 controls.target.copy(center);
                 controls.update();
 
+                if (url.includes('room')) {
+                    createMarkers(roomLabels);
+                } else if (url.includes('kitchen')) {
+                    createMarkers(kitchenLabels);
+                }
+
             }, undefined, function (error) {
                 console.error("Error loading model:", error);
+            });
+        }
+
+        function createMarkers(data) {
+            for (const [nodeName, labelData] of Object.entries(data)) {
+                const obj = currentModel.getObjectByName(nodeName);
+                if (obj) {
+                    const dot = document.createElement('div');
+                    dot.className = 'marker-dot';
+                    labelsContainer.appendChild(dot);
+
+                    const el = document.createElement('div');
+                    el.className = 'label';
+                    el.innerHTML = `<b>${labelData.title}</b>${labelData.text}`;
+                    labelsContainer.appendChild(el);
+
+                    markers.push({ dot: dot, element: el, object: obj });
+                }
+            }
+        }
+
+        function clearLabels() {
+            labelsContainer.innerHTML = '';
+            markers = [];
+        }
+
+        function updateLabels() {
+            markers.forEach(marker => {
+                const vector = new THREE.Vector3();
+                marker.object.updateWorldMatrix(true, false);
+                marker.object.getWorldPosition(vector);
+
+                // Offset vector slightly for the dot to be on top
+                vector.y += 0.2;
+
+                vector.project(camera);
+
+                if (vector.z > 1) {
+                    marker.element.style.opacity = 0;
+                    marker.dot.style.opacity = 0;
+                } else {
+                    marker.element.style.opacity = 1;
+                    marker.dot.style.opacity = 1;
+                    const x = (vector.x * 0.5 + 0.5) * window.innerWidth;
+                    const y = (vector.y * -0.5 + 0.5) * window.innerHeight;
+
+                    marker.dot.style.transform = `translate(-50%, -50%) translate(${x}px,${y}px)`;
+                    marker.element.style.transform = `translate(-50%, -120%) translate(${x}px,${y}px)`;
+                }
             });
         }
 
@@ -123,29 +258,29 @@
             controls.update();
 
             if (currentModel) {
+                const time = Date.now() * 0.001;
+
                 // Head Tracking
                 const head = currentModel.getObjectByName('room_human_head') || currentModel.getObjectByName('kitchen_human_head');
                 if (head) {
                     head.lookAt(camera.position);
                 }
 
-                // Breathing Animation (pulsing scale)
+                // Breathing
                 const torso = currentModel.getObjectByName('room_human_torso') || currentModel.getObjectByName('kitchen_human_torso');
                 if (torso) {
-                    const scale = 1 + Math.sin(Date.now() * 0.002) * 0.02;
-                    torso.scale.set(scale, 1, scale);
+                    const breath = 1 + Math.sin(time * 2) * 0.015;
+                    torso.scale.set(breath, 1, breath);
                 }
 
-                // Object Swaying (realistic effect of movement)
-                ['bedsheet', 'bean_bag', 'laundry_basket'].forEach((name, i) => {
-                    const obj = currentModel.getObjectByName(name);
-                    if (obj) {
-                        const freq = 0.001 + i * 0.0001;
-                        obj.position.y += Math.sin(Date.now() * freq) * 0.0001;
-                        obj.rotation.z = Math.sin(Date.now() * freq) * 0.005;
-                        obj.rotation.x = Math.cos(Date.now() * freq) * 0.003;
-                    }
-                });
+                // Bedsheet Sway Animation
+                const linen = currentModel.getObjectByName('bed_linen');
+                if (linen) {
+                    linen.position.y = 0.45 + Math.sin(time * 3) * 0.002;
+                    linen.scale.y = 1 + Math.sin(time * 3) * 0.01;
+                }
+
+                updateLabels();
             }
 
             renderer.render(scene, camera);

@@ -1,0 +1,6 @@
+127.0.0.1 - - [13/Feb/2026 02:37:42] "GET /preview.html HTTP/1.1" 200 -
+127.0.0.1 - - [13/Feb/2026 02:37:42] "GET /room.glb HTTP/1.1" 200 -
+127.0.0.1 - - [13/Feb/2026 02:37:53] "GET /kitchen.glb HTTP/1.1" 200 -
+127.0.0.1 - - [13/Feb/2026 02:39:17] "GET /preview.html HTTP/1.1" 200 -
+127.0.0.1 - - [13/Feb/2026 02:39:17] "GET /room.glb HTTP/1.1" 200 -
+127.0.0.1 - - [13/Feb/2026 02:39:29] "GET /kitchen.glb HTTP/1.1" 200 -
