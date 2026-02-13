@@ -66,8 +66,9 @@
 
             controls = new OrbitControls(camera, renderer.domElement);
             controls.enableDamping = true;
+            controls.dampingFactor = 0.05;
 
-            const ambientLight = new THREE.AmbientLight(0xffffff, 1.5);
+            const ambientLight = new THREE.AmbientLight(0xffffff, 1.2);
             scene.add(ambientLight);
 
             const hemiLight = new THREE.HemisphereLight(0xffffff, 0x444444, 2.0);
@@ -120,6 +121,33 @@
         function animate() {
             requestAnimationFrame(animate);
             controls.update();
+
+            if (currentModel) {
+                // Head Tracking
+                const head = currentModel.getObjectByName('room_human_head') || currentModel.getObjectByName('kitchen_human_head');
+                if (head) {
+                    head.lookAt(camera.position);
+                }
+
+                // Breathing Animation (pulsing scale)
+                const torso = currentModel.getObjectByName('room_human_torso') || currentModel.getObjectByName('kitchen_human_torso');
+                if (torso) {
+                    const scale = 1 + Math.sin(Date.now() * 0.002) * 0.02;
+                    torso.scale.set(scale, 1, scale);
+                }
+
+                // Object Swaying (realistic effect of movement)
+                ['bedsheet', 'bean_bag', 'laundry_basket'].forEach((name, i) => {
+                    const obj = currentModel.getObjectByName(name);
+                    if (obj) {
+                        const freq = 0.001 + i * 0.0001;
+                        obj.position.y += Math.sin(Date.now() * freq) * 0.0001;
+                        obj.rotation.z = Math.sin(Date.now() * freq) * 0.005;
+                        obj.rotation.x = Math.cos(Date.now() * freq) * 0.003;
+                    }
+                });
+            }
+
             renderer.render(scene, camera);
         }
     </script>
